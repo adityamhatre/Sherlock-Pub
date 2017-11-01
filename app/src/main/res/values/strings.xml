@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Pub App</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="action_about_developer">About Developer</string>
+    <string name="display_picture_of_pub">Display picture of pub</string>
+    <string name="pub_name_placeholder">Pub Name</string>
+    <string name="pub_timings_placeholder">Pub Timings</string>
+    <string name="pub_city_placeholder">Pub City</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
