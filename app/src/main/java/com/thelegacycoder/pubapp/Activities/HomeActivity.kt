@@ -14,10 +14,17 @@ import android.view.MenuItem
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.thelegacycoder.pubapp.Fragments.PubListFragment
+import com.thelegacycoder.pubapp.Interfaces.ApiCall
 import com.thelegacycoder.pubapp.Models.Pub
 import com.thelegacycoder.pubapp.R
 import kotlinx.android.synthetic.main.activity_home.*
 import kotlinx.android.synthetic.main.app_bar_home.*
+import okhttp3.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class HomeActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener, PubListFragment.OnFragmentInteractionListener {
     override fun onFragmentInteraction(uri: Uri) {
@@ -48,29 +55,31 @@ class HomeActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun getPubs() {
-        val getPubResponse = "[{\n" +
-                "    \"pubName\": \"Pub 1\",\n" +
-                "    \"timings\": \"4PM to 3AM\",\n" +
-                "    \"location\": {\n" +
-                "        \"lat\": 1234,\n" +
-                "        \"lon\": 5678\n" +
-                "    },\n" +
-                "    \"city\": \"Mumbai\",\n" +
-                "    \"backgroundPic\": \"background_url\",\n" +
-                "    \"displayPic\": \"display_url\"\n" +
-                "},\n" +
-                "{\n" +
-                "    \"pubName\": \"Pub 2\",\n" +
-                "    \"timings\": \"5PM to 4AM\",\n" +
-                "    \"location\": {\n" +
-                "        \"lat\": 9101,\n" +
-                "        \"lon\": 1213\n" +
-                "    },\n" +
-                "    \"city\": \"Delhi\",\n" +
-                "    \"backgroundPic\": \"background_url\",\n" +
-                "    \"displayPic\": \"display_url\"\n" +
-                "}]"
-        val pubs: ArrayList<Pub> = Gson().fromJson(getPubResponse, object : TypeToken<ArrayList<Pub>>() {}.type)
+
+        val pubs = ArrayList<Pub>()
+        val client = OkHttpClient.Builder()
+        client.interceptors()?.add(FakeInterceptor())
+        val apiCall: ApiCall = Retrofit.Builder()
+                .addConverterFactory(GsonConverterFactory.create())
+                .client(client.build())
+                .baseUrl(resources.getString(R.string.base_url))
+                .build().create(ApiCall::class.java)
+
+        apiCall.getPubs()
+                .enqueue(object : Callback<List<Pub>> {
+                    override fun onResponse(call: Call<List<Pub>>?, response: Response<List<Pub>>?) {
+                        pubs.clear()
+                        pubs.addAll(response?.body() ?: List(1, { Pub() }))
+                        println("RECEIVED: ${pubs.size}")
+                    }
+
+                    override fun onFailure(call: Call<List<Pub>>?, t: Throwable?) {
+                        println("FAILED")
+                    }
+
+
+                })
+
         pubs.forEach { println(it) }
 
 
@@ -131,5 +140,42 @@ class HomeActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         fragmentManager.beginTransaction().replace(R.id.container, fragment).commit()
     }
 
+
+}
+
+class FakeInterceptor : Interceptor {
+    private val getPubResponse = "[{\n" +
+            "    \"pubName\": \"Pub 1\",\n" +
+            "    \"timings\": \"4PM to 3AM\",\n" +
+            "    \"location\": {\n" +
+            "        \"lat\": 1234,\n" +
+            "        \"lon\": 5678\n" +
+            "    },\n" +
+            "    \"city\": \"Mumbai\",\n" +
+            "    \"backgroundPic\": \"background_url\",\n" +
+            "    \"displayPic\": \"display_url\"\n" +
+            "},\n" +
+            "{\n" +
+            "    \"pubName\": \"Pub 2\",\n" +
+            "    \"timings\": \"5PM to 4AM\",\n" +
+            "    \"location\": {\n" +
+            "        \"lat\": 9101,\n" +
+            "        \"lon\": 1213\n" +
+            "    },\n" +
+            "    \"city\": \"Delhi\",\n" +
+            "    \"backgroundPic\": \"background_url\",\n" +
+            "    \"displayPic\": \"display_url\"\n" +
+            "}]"
+
+    override fun intercept(chain: Interceptor.Chain?): okhttp3.Response {
+        return okhttp3.Response.Builder()
+                .code(200)
+                .message("Success")
+                .body((ResponseBody.create(MediaType.parse("application/json"), getPubResponse)))
+                .request(chain!!.request())
+                .protocol(Protocol.HTTP_2)
+                .addHeader("content-type", "application/json")
+                .build()
+    }
 
 }
